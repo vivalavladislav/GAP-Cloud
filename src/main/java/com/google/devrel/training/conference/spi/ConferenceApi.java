@@ -14,6 +14,7 @@ import com.google.devrel.training.conference.form.ProfileForm;
 import com.google.devrel.training.conference.form.ProfileForm.TeeShirtSize;
 import com.googlecode.objectify.Key;
 
+
 /**
  * Defines conference APIs.
  */
@@ -53,8 +54,7 @@ public class ConferenceApi {
 	public Profile saveProfile(ProfileForm profileForm, User user) throws UnauthorizedException {
         // TODO 2
         // If the user is not logged in, throw an UnauthorizedException
-    	if ( user == null )
-    	{
+    	if ( user == null ){
     		throw new UnauthorizedException( "user == null");
     	}
     	
@@ -86,7 +86,10 @@ public class ConferenceApi {
         // TODO 3 (In Lesson 3)
         // Save the Profile entity in the datastore
 
+        ofy().save().entity(profile).now();
+        
         // Return the profile
+        
         return profile;
     }
 
@@ -106,11 +109,10 @@ public class ConferenceApi {
             throw new UnauthorizedException("Authorization required");
         }
 
-        // TODO
-        // load the Profile Entity
-        String userId = ""; // TODO
-        Key key = null; // TODO
-        Profile profile = null; // TODO load the Profile entity
+        
+        String userId = user.getUserId(); // TODO
+        Key<Profile> key = Key.create( Profile.class, userId); // TODO
+        Profile profile = ofy().load().key(key).now(); // TODO load the Profile entity
         return profile;
     }
 }

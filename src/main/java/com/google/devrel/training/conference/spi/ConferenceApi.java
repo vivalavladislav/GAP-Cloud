@@ -2,6 +2,8 @@ package com.google.devrel.training.conference.spi;
 
 import static com.google.devrel.training.conference.service.OfyService.ofy;
 
+import java.text.Normalizer.Form;
+
 import com.google.api.server.spi.config.Api;
 import com.google.api.server.spi.config.ApiMethod;
 import com.google.api.server.spi.config.ApiMethod.HttpMethod;
@@ -54,33 +56,31 @@ public class ConferenceApi {
 	public Profile saveProfile(ProfileForm profileForm, User user) throws UnauthorizedException {
         // TODO 2
         // If the user is not logged in, throw an UnauthorizedException
-    	if ( user == null ){
+    	if ( user == null || profileForm == null ){
     		throw new UnauthorizedException( "user == null");
     	}
     	
+    	Profile result = null;
+    	result = tryUpdate( user, profileForm) ;
+    	
+    	if ( result != null ) {
+    		return result;
+    	}
     	
         String userId = user.getUserId();
         String mainEmail = user.getEmail();
-        String displayName = profileForm.getDisplayName();
+       
         TeeShirtSize teeShirtSize = profileForm.getTeeShirtSize();
+        if ( teeShirtSize == null ){
+        	teeShirtSize = TeeShirtSize.NOT_SPECIFIED;
+        }
         
-        // TODO 1
-        // Set the teeShirtSize to the value sent by the ProfileForm, if sent
-        // otherwise leave it as the default value
-
-        // TODO 1
-        // Set the displayName to the value sent by the ProfileForm, if sent
-        // otherwise set it to null
-
-        // TODO 2
-        // Get the userId and mainEmail
-
-        // TODO 2
-        // If the displayName is null, set it to default value based on the user's email
-        // by calling extractDefaultDisplayNameFromEmail(...)
-
-        // Create a new Profile entity from the
-        // userId, displayName, mainEmail and teeShirtSize
+        String displayName = profileForm.getDisplayName();
+        if ( displayName == null ){
+        	displayName = extractDefaultDisplayNameFromEmail(user.getEmail());
+        }
+        
+       
         Profile profile = new Profile(userId, displayName, mainEmail, teeShirtSize);
 
         // TODO 3 (In Lesson 3)
@@ -93,6 +93,33 @@ public class ConferenceApi {
         return profile;
     }
 
+    private Profile tryUpdate(final User user, ProfileForm form){
+    	String userId = user.getUserId(); 
+        Key<Profile> key = Key.create( Profile.class, userId); 
+     
+        Profile profile = null;
+        
+        try{
+        	profile = ofy().load().key(key).now(); // TODO load the Profile entity
+        }
+        catch( Exception e){
+        	// profile hasn't been saved
+        	return null;
+        }
+        
+        if (profile == null){
+        	return null;
+        }
+        
+        String displayName = form.getDisplayName() == null ? profile.getDisplayName() : form.getDisplayName();
+        TeeShirtSize size = form.getTeeShirtSize() == null ? profile.getTeeShirtSize() : form.getTeeShirtSize();
+        
+        profile.update(displayName, size);
+        
+        ofy().save().entity(profile).now();
+    	return profile;
+    }
+    
     /**
      * Returns a Profile object associated with the given user object. The cloud
      * endpoints system automatically inject the User object.
